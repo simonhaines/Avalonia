@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Disposables;
 using Avalonia.Controls.Mixins;
@@ -8,6 +9,7 @@ using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives.PopupPositioning;
 using Avalonia.Input;
 using Avalonia.Input.Raw;
+using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Metadata;
 using Avalonia.Platform;
@@ -397,7 +399,7 @@ namespace Avalonia.Controls.Primitives
             _isOpenRequested = false;
             var popupHost = OverlayPopupHost.CreatePopupHost(placementTarget, DependencyResolver);
 
-            var handlerCleanup = new CompositeDisposable(5);
+            var handlerCleanup = new CompositeDisposable(6);
 
             popupHost.BindConstraints(this, WidthProperty, MinWidthProperty, MaxWidthProperty,
                 HeightProperty, MinHeightProperty, MaxHeightProperty, TopmostProperty).DisposeWith(handlerCleanup);
@@ -417,6 +419,14 @@ namespace Avalonia.Controls.Primitives
             SubscribeToEventHandler<IPopupHost, EventHandler<TemplateAppliedEventArgs>>(popupHost, RootTemplateApplied,
                 (x, handler) => x.TemplateApplied += handler,
                 (x, handler) => x.TemplateApplied -= handler).DisposeWith(handlerCleanup);
+            
+            if (placementTarget is Layoutable layoutTarget)
+            {
+                // The popup must be anchored to the layout target after any layout updates
+                SubscribeToEventHandler<Layoutable, EventHandler>(layoutTarget, (sender, e) => HandlePositionChange(),
+                    (x, handler) => x.LayoutUpdated += handler,
+                    (x, handler) => x.LayoutUpdated -= handler).DisposeWith(handlerCleanup);
+            }
 
             if (topLevel is Window window)
             {
@@ -427,6 +437,10 @@ namespace Avalonia.Controls.Primitives
                 SubscribeToEventHandler<IWindowImpl, Action>(window.PlatformImpl, WindowLostFocus,
                         (x, handler) => x.LostFocus += handler,
                         (x, handler) => x.LostFocus -= handler).DisposeWith(handlerCleanup);
+
+                SubscribeToEventHandler<IWindowImpl, Action<PixelPoint>>(window.PlatformImpl, WindowPositionChanged,
+                    (x, handler) => x.PositionChanged += handler,
+                    (x, handler) => x.PositionChanged -= handler).DisposeWith(handlerCleanup);
             }
             else
             {
@@ -437,6 +451,9 @@ namespace Avalonia.Controls.Primitives
                     SubscribeToEventHandler<Popup, EventHandler<EventArgs>>(popup, ParentClosed,
                         (x, handler) => x.Closed += handler,
                         (x, handler) => x.Closed -= handler).DisposeWith(handlerCleanup);
+
+                    // FIXME when nested-popups are open and the window state changes, things get screwed up??
+                    // something is re-layouting this popup?? 
                 }
             }
 
@@ -491,6 +508,8 @@ namespace Avalonia.Controls.Primitives
 
             _popupHostChangedHandler?.Invoke(Host);
         }
+
+        private void WindowPositionChanged(PixelPoint pixelPoint) => HandlePositionChange();
 
         /// <summary>
         /// Closes the popup.

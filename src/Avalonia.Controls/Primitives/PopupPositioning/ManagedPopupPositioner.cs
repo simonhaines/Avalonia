@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Transactions;
 
@@ -79,6 +80,7 @@ namespace Avalonia.Controls.Primitives.PopupPositioning
 
         public void Update(PopupPositionerParameters parameters)
         {
+            Debug.WriteLine($"AnchorRectangle: [{parameters.AnchorRectangle.X},{parameters.AnchorRectangle.Y},{parameters.AnchorRectangle.Width},{parameters.AnchorRectangle.Height}]");
             var rect = Calculate(
                 parameters.Size * _popup.Scaling,
                 new Rect(
@@ -88,6 +90,7 @@ namespace Avalonia.Controls.Primitives.PopupPositioning
                 parameters.Gravity,
                 parameters.ConstraintAdjustment,
                 parameters.Offset * _popup.Scaling);
+            Debug.WriteLine($"  CalculateRect: [{rect.X},{rect.Y},{rect.Width},{rect.Height}]");
            
             _popup.MoveAndResize(
                 rect.Position,
