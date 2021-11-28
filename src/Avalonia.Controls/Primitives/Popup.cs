@@ -419,23 +419,11 @@ namespace Avalonia.Controls.Primitives
             SubscribeToEventHandler<IPopupHost, EventHandler<TemplateAppliedEventArgs>>(popupHost, RootTemplateApplied,
                 (x, handler) => x.TemplateApplied += handler,
                 (x, handler) => x.TemplateApplied -= handler).DisposeWith(handlerCleanup);
+            
 
 
             if (topLevel is Window window)
             {
-                //SubscribeToEventHandler<Window, EventHandler>(window, WindowDeactivated,
-                //    (x, handler) => x.Deactivated += handler,
-                //    (x, handler) => x.Deactivated -= handler).DisposeWith(handlerCleanup);
-
-                //SubscribeToEventHandler<IWindowImpl, Action>(window.PlatformImpl, WindowLostFocus,
-                //        (x, handler) => x.LostFocus += handler,
-                //        (x, handler) => x.LostFocus -= handler).DisposeWith(handlerCleanup);
-
-                //void WindowPositionChanged(PixelPoint pixelPoint) => HandlePositionChange();
-                //SubscribeToEventHandler<IWindowImpl, Action<PixelPoint>>(window.PlatformImpl, WindowPositionChanged,
-                //    (x, handler) => x.PositionChanged += handler,
-                //    (x, handler) => x.PositionChanged -= handler).DisposeWith(handlerCleanup);
-
                 if (placementTarget is Layoutable layoutTarget)
                 {
                     // The popup must be anchored to the layout target after any layout updates
@@ -444,18 +432,39 @@ namespace Avalonia.Controls.Primitives
                         (x, handler) => x.LayoutUpdated -= handler).DisposeWith(handlerCleanup);
                 }
 
+                //SubscribeToEventHandler<Window, EventHandler>(window, WindowDeactivated,
+                //    (x, handler) => x.Deactivated += handler,
+                //    (x, handler) => x.Deactivated -= handler).DisposeWith(handlerCleanup);
+
+                //SubscribeToEventHandler<IWindowImpl, Action>(window.PlatformImpl, WindowLostFocus,
+                //        (x, handler) => x.LostFocus += handler,
+                //        (x, handler) => x.LostFocus -= handler).DisposeWith(handlerCleanup);
+
+                void WindowPositionChanged(PixelPoint pixelPoint)
+                {
+                    Debug.WriteLine($"WindowPositionChanged(PixelPoint): {pixelPoint}");
+                    HandlePositionChange();
+                }
+                
+                SubscribeToEventHandler<IWindowImpl, Action<PixelPoint>>(window.PlatformImpl, WindowPositionChanged,
+                    (x, handler) => x.PositionChanged += handler,
+                    (x, handler) => x.PositionChanged -= handler).DisposeWith(handlerCleanup);
             }
             else
             {
                 var parentPopupRoot = topLevel as PopupRoot;
-
+                parentPopupRoot.PositionChanged += (source, e) => HandlePositionChange();
                 if (parentPopupRoot?.Parent is Popup popup)
                 {
+                    // var rootWindow = popup.FindLogicalAncestorOfType<Window>();
+                    // if (rootWindow != null)
+                    //     rootWindow.PlatformImpl.PositionChanged += (pp) => HandlePositionChange();
+                    
                     SubscribeToEventHandler<Popup, EventHandler<EventArgs>>(popup, ParentClosed,
                         (x, handler) => x.Closed += handler,
                         (x, handler) => x.Closed -= handler).DisposeWith(handlerCleanup);
 
-                    popup.PositionChanged += () => HandlePositionChange();
+                    //popup.PositionChanged += () => HandlePositionChange();
                     //popup.IsLightDismissEnabled = true;
                     // FIXME when nested-popups are open and the window state changes, things get screwed up??
                     // something is re-layouting this popup?? 
@@ -529,6 +538,12 @@ namespace Avalonia.Controls.Primitives
             return new Size();
         }
 
+        protected override void ArrangeCore(Rect finalRect)
+        {
+            base.ArrangeCore(finalRect);
+            Debug.WriteLine($"ArrangeCore(rect): {finalRect}");
+        }
+
 
         /// <inheritdoc/>
         protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
@@ -546,7 +561,7 @@ namespace Avalonia.Controls.Primitives
             base.OnDetachedFromLogicalTree(e);
             Close();
         }
-        
+
         private void HandlePositionChange()
         {
             if (_openState != null)
