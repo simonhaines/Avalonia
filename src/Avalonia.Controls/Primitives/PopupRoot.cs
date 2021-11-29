@@ -76,12 +76,9 @@ namespace Avalonia.Controls.Primitives
         /// <inheritdoc/>
         public void Dispose() => PlatformImpl?.Dispose();
 
-        public event Action PositionUpdated;
-        
         private void UpdatePosition()
         {
             PlatformImpl?.PopupPositioner.Update(_positionerParameters);
-            PositionUpdated?.Invoke();
         }
 
         public void ConfigurePosition(IVisual target, PlacementMode placement, Point offset,

@@ -6,6 +6,7 @@ using Moq;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
+using Avalonia.Controls.UnitTests.Selection;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Platform;
@@ -593,6 +594,61 @@ namespace Avalonia.Controls.UnitTests.Primitives
 
                 Assert.True(focus == windowTB);
             }
+        }
+
+        [Fact]
+        public void Popup_Should_Follow_Placement_Target_On_Window_Move()
+        {
+            using (CreateServices())
+            {
+                var root = PreparedWindow();
+                var popup = new Popup();
+                root.Content = popup;
+                
+                var raised = 0;
+                popup.Open();
+
+                // Moving the root window must move the popup
+                var popupRoot = (PopupRoot)popup.Host;
+                popupRoot.PositionChanged += (_, args) =>
+                {
+                    Assert.Equal(args.Point, new PixelPoint(10, 10));
+                    raised++;
+                };
+
+                root.PositionChanged += (_, args) =>
+                {
+                    Assert.Equal(args.Point, new PixelPoint(10, 10));
+                };
+                
+                
+                root.Position = new PixelPoint(10, 10);
+                //Assert.NotEqual(0, raised);
+                
+
+                // Get popup.PopupRoot
+
+                var placementTarget = popup.FindLogicalAncestorOfType<IControl>();
+                Assert.Same(root, placementTarget);
+
+                
+                
+
+
+
+            }
+        }
+
+        [Fact]
+        public void Popup_Should_Follow_Placement_Target_On_Window_Resize()
+        {
+            
+        }
+
+        [Fact]
+        public void Popup_Should_Follow_Placement_Target_On_Window_Mode_Change()
+        {
+            
         }
 
         private IDisposable CreateServices()

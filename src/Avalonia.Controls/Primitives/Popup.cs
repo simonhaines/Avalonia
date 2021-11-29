@@ -420,8 +420,6 @@ namespace Avalonia.Controls.Primitives
                 (x, handler) => x.TemplateApplied += handler,
                 (x, handler) => x.TemplateApplied -= handler).DisposeWith(handlerCleanup);
             
-
-
             if (topLevel is Window window)
             {
                 if (placementTarget is Layoutable layoutTarget)
@@ -450,24 +448,18 @@ namespace Avalonia.Controls.Primitives
                     (x, handler) => x.PositionChanged += handler,
                     (x, handler) => x.PositionChanged -= handler).DisposeWith(handlerCleanup);
             }
-            else
+            else if (topLevel is PopupRoot parentPopupRoot)
             {
-                var parentPopupRoot = topLevel as PopupRoot;
-                parentPopupRoot.PositionChanged += (source, e) => HandlePositionChange();
-                if (parentPopupRoot?.Parent is Popup popup)
+                SubscribeToEventHandler<PopupRoot, EventHandler<PixelPointEventArgs>>(parentPopupRoot,
+                    (src, e) => HandlePositionChange(),
+                    (x, handler) => x.PositionChanged += handler,
+                    (x, handler) => x.PositionChanged -= handler);
+
+                if (parentPopupRoot.Parent is Popup popup)
                 {
-                    // var rootWindow = popup.FindLogicalAncestorOfType<Window>();
-                    // if (rootWindow != null)
-                    //     rootWindow.PlatformImpl.PositionChanged += (pp) => HandlePositionChange();
-                    
                     SubscribeToEventHandler<Popup, EventHandler<EventArgs>>(popup, ParentClosed,
                         (x, handler) => x.Closed += handler,
                         (x, handler) => x.Closed -= handler).DisposeWith(handlerCleanup);
-
-                    //popup.PositionChanged += () => HandlePositionChange();
-                    //popup.IsLightDismissEnabled = true;
-                    // FIXME when nested-popups are open and the window state changes, things get screwed up??
-                    // something is re-layouting this popup?? 
                 }
             }
 
@@ -577,11 +569,8 @@ namespace Avalonia.Controls.Primitives
                     PlacementGravity,
                     PlacementConstraintAdjustment,
                     PlacementRect);
-                PositionChanged?.Invoke();
             }
         }
-
-        private event Action PositionChanged;
 
         private static IDisposable SubscribeToEventHandler<T, TEventHandler>(T target, TEventHandler handler, Action<T, TEventHandler> subscribe, Action<T, TEventHandler> unsubscribe)
         {
